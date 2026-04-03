@@ -8,13 +8,13 @@
 #define DEBOUNCE_MS 20
 
 static esp_timer_handle_t debounce_timer = NULL;
-static uint8_t button_pressed = 0;  // Qual botão disparou o interrupt
+static uint8_t button_pressed = 0;
 
 static uint8_t cont = 0;
 
-// Callback do timer (executada após debounce)
+// Callback do timer
 void debounce_timer_callback(void* arg) {
-    if(!gpio_get_level(button_pressed)){  // Botão ainda pressionado
+    if(!gpio_get_level(button_pressed)){ // Botão ativo em nivel lógico baixo
         if(button_pressed == GPIO_NUM_10) {
             cont = cont + 1;
         } else if(button_pressed == GPIO_NUM_11) {
@@ -22,12 +22,12 @@ void debounce_timer_callback(void* arg) {
         }
     }
     
-    // Reabilita interrupt para detectar próxima mudança
+    // Reabilita interrupt
     gpio_intr_enable(button_pressed);
 }
 
 
-// ISR - Handler do interrupt do GPIO
+// ISR handler do interrupt do GPIO
 void IRAM_ATTR gpio_interrupt_handler(void* arg) {
     uint32_t gpio_num = (uint32_t)arg;
     button_pressed = gpio_num;
@@ -35,7 +35,7 @@ void IRAM_ATTR gpio_interrupt_handler(void* arg) {
     // Desabilita interrupt durante debounce
     gpio_intr_disable(gpio_num);
     
-    // Inicia timer para debounce (50ms em microsegundos)
+    // Inicia timer para debounce
     esp_timer_start_once(debounce_timer, DEBOUNCE_MS*1000);
 }
 
@@ -45,14 +45,14 @@ void app_main() {
         .mode=GPIO_MODE_INPUT,
         .pull_up_en=GPIO_PULLUP_ENABLE,
         .intr_type=GPIO_INTR_NEGEDGE,
-        .pin_bit_mask=(0b11 << 10)
+        .pin_bit_mask=(0b11 << 10) // Pinos GPIO10 e GPIO11
     };
 
     gpio_config_t gpio_leds = {
         .mode=GPIO_MODE_OUTPUT,
         .pull_up_en=GPIO_PULLUP_DISABLE,
         .pull_down_en=GPIO_PULLDOWN_DISABLE,
-        .pin_bit_mask =(0b1111 << 15)
+        .pin_bit_mask =(0b1111 << 15) // Pinos GPIO15, 16, 17, 18
     };
 
     gpio_config(&gpio_buttons);
