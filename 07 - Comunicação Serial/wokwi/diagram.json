@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "author": "Antonni Guedes Alves de Moraes",
+  "editor": "wokwi",
+  "parts": [
+    {
+      "type": "board-esp32-s3-devkitc-1",
+      "id": "esp",
+      "top": 0,
+      "left": 0,
+      "attrs": { "builder": "esp-idf" }
+    },
+    { "type": "wokwi-led", "id": "led1", "top": 54, "left": -53.8, "attrs": { "color": "red" } },
+    {
+      "type": "wokwi-resistor",
+      "id": "r1",
+      "top": 90.35,
+      "left": -96,
+      "attrs": { "value": "220" }
+    }
+  ],
+  "connections": [
+    [ "esp:TX", "$serialMonitor:RX", "", [] ],
+    [ "esp:RX", "$serialMonitor:TX", "", [] ],
+    [ "esp:5", "esp:4", "green", [ "h-14.68", "v9.42" ] ],
+    [ "esp:15", "led1:A", "green", [ "h0" ] ],
+    [ "r1:2", "led1:C", "green", [ "v0" ] ],
+    [ "r1:1", "esp:GND.1", "green", [ "v0" ] ]
+  ],
+  "dependencies": {}
+}
