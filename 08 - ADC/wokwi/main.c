@@ -42,10 +42,13 @@ void app_main() {
     isr_conf();
 
     while(1){
-        adc_oneshot_read(adc2_handle, ADC_CHANNEL, &adc_raw);
-        tensao = adc_raw*3.3/4095;
-        ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, adc_raw);
-        if(button_state) ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0);
+        if(button_state){
+            adc_oneshot_read(adc2_handle, ADC_CHANNEL, &adc_raw);
+            tensao = adc_raw*3.3/4095;
+            ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, adc_raw);
+            ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0);
+        }
+
         vTaskDelay(pdMS_TO_TICKS(ADC_DELAY));
     }
 }
@@ -55,17 +58,17 @@ void gpio_conf(){
         .mode=GPIO_MODE_OUTPUT,
         .pull_up_en=GPIO_PULLUP_DISABLE,
         .pull_down_en=GPIO_PULLDOWN_DISABLE,
-        .pin_bit_mask =(1ULL << LED_PIN) // Pino GPIO13
+        .pin_bit_mask =(1ULL << LED_PIN)
         };
 
     gpio_config(&gpio_led);
 
     gpio_config_t gpio_button = {
         .mode=GPIO_MODE_INPUT,
-        .pull_up_en=GPIO_PULLUP_DISABLE,
+        .pull_up_en=GPIO_PULLUP_DISABLE, // Pullup externo
         .pull_down_en=GPIO_PULLDOWN_DISABLE,
         .intr_type=GPIO_INTR_NEGEDGE,
-        .pin_bit_mask =(1ULL << PUSH_BUTTON_PIN) // Pino GPIO12
+        .pin_bit_mask =(1ULL << PUSH_BUTTON_PIN)
         };
 
     gpio_config(&gpio_button);
@@ -79,7 +82,7 @@ void adc_conf(){
     adc_oneshot_new_unit(&init_config1, &adc2_handle);
 
     adc_oneshot_chan_cfg_t config = {
-        .atten = ADC_ATTEN_DB_0,
+        .atten = ADC_ATTEN_DB_12,
         .bitwidth = ADC_BITWIDTH_12,
     };
     adc_oneshot_config_channel(adc2_handle, ADC_CHANNEL, &config);
@@ -141,23 +144,16 @@ void timer_print_callback(void* arg){
 }
 
 void debounce_timer_callback(void* arg){
-    if(!gpio_get_level(PUSH_BUTTON_PIN)){ // Botão ativo em nivel lógico baixo
-        if(button_state){
-            button_state = false;
-        } else {
-            button_state = true;
-        }
+    if(!gpio_get_level(PUSH_BUTTON_PIN)){ 
+        button_state = !button_state;
     }
-    // Reabilita interrupt
+    
     gpio_intr_enable(PUSH_BUTTON_PIN);
 }
 
 void IRAM_ATTR gpio_interrupt_handler(void* arg) {
-    uint32_t gpio_num = (uint32_t)arg;
+    gpio_intr_disable(PUSH_BUTTON_PIN);
     
-    // Desabilita interrupt durante debounce
-    gpio_intr_disable(gpio_num);
-    
-    // Inicia timer para debounce
-    esp_timer_start_once(debounce_timer, DEBOUNCE_MS*1000);
+    esp_timer_stop(debounce_timer); 
+    esp_timer_start_once(debounce_timer, DEBOUNCE_MS * 1000);
 }
